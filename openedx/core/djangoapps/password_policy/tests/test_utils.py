@@ -2,11 +2,12 @@
 Test password policy utilities
 """
 from django.test import TestCase, override_settings
-
+import pytz
+from datetime import datetime, timedelta
 from mock import patch
 
 from openedx.core.djangoapps.password_policy.constants import PASSWORD_POLICY_COMPLIANT_USERS_GROUP_NAME
-from openedx.core.djangoapps.password_policy.utils import is_password_compliant, check_password_policy_compliance
+from openedx.core.djangoapps.password_policy.utils import NonCompliantPasswordException, is_password_compliant, check_password_policy_compliance
 from util.password_policy_validators import ValidationError
 from student.tests.factories import UserFactory, GroupFactory
 
@@ -33,12 +34,13 @@ class Test(TestCase):
         self.assertIsNone(check_password_policy_compliance(None, None, None))
 
     @override_settings(PASSWORD_POLICY_COMPLIANCE_ROLLOUT_CONFIG={'ENABLE_COMPLIANCE_CHECKING': True})
-    def test_check_password_policy_compliance(self):
+    def test_check_password_policy_compliance_failure_cases(self):
         """
         Test that if the config is enabled:
             * Nothing is returned if the user is already in the PASSWORD_POLICY_COMPLIANT_USERS_GROUP_NAME
             * The user is added to the group if their password is found to be compliant
             * If there is no deadline return
+            * If the deadline is passed and the passwore
         """
         user = UserFactory()
         group = GroupFactory.create(name=PASSWORD_POLICY_COMPLIANT_USERS_GROUP_NAME)
@@ -59,11 +61,32 @@ class Test(TestCase):
             with patch('openedx.core.djangoapps.password_policy.utils.get_enforcement_deadline_for_user') as \
                     mock_get_enforcement_deadline_for_user:
                 user = UserFactory()
-                # Make validate_password return True without checking the password
+                # Make get_enforcement_deadline_for_user return None to force the return
                 mock_get_enforcement_deadline_for_user.return_value = None
                 self.assertFalse(user.groups.all())  # Make sure there are no groups to start with
                 self.assertIsNone(check_password_policy_compliance(user, None, None))
                 self.assertFalse(user.groups.all())  # Make sure there are still groups
 
+        with patch('openedx.core.djangoapps.password_policy.utils.validate_password') as mock_validate_password:
+            mock_validate_password.side_effect = ValidationError('Some error message')
+            with patch('openedx.core.djangoapps.password_policy.utils.get_enforcement_deadline_for_user') as \
+                    mock_get_enforcement_deadline_for_user:
+                user = UserFactory()
+                # Make get_enforcement_deadline_for_user return always be in the past to force the exception
+                mock_get_enforcement_deadline_for_user.return_value = datetime.now(pytz.UTC) - timedelta(1)
+                self.assertFalse(user.groups.all())  # Make sure there are no groups to start with
+                self.assertRaises(NonCompliantPasswordException, check_password_policy_compliance, user, None, None)
+                self.assertFalse(user.groups.all())  # Make sure there are still groups
+
+    @override_settings(PASSWORD_POLICY_COMPLIANCE_ROLLOUT_CONFIG={
+        'STAFF_USER_COMPLIANCE_DEADLINE': '2018-01-01 00:00:00+00:00',
+        'ELEVATED_PRIVILEGE_USER_COMPLIANCE_DEADLINE': '2018-02-02 00:00:00+00:00',
+        'GENERAL_USER_COMPLIANCE_DEADLINE': '2018-03-03 00:00:00+00:00'
+    })
     def test_get_enforcement_deadline_for_user(self):
-        pass
+        """
+        Test that the proper deadlines get returned for each user scenario
+            * Staff deadline returns STAFF_USER_COMPLIANCE_DEADLINE
+            * CourseAccessRole Users return ELEVATED_PRIVILEGE_USER_COMPLIANCE_DEADLINE
+            * Everyone else gets GENERAL_USER_COMPLIANCE_DEADLINE
+        """
