@@ -8,12 +8,14 @@ from dateutil.parser import parse as parse_date
 from django.test import TestCase, override_settings
 from mock import patch
 
-from openedx.core.djangoapps.password_policy.compliance import (
-    PASSWORD_POLICY_COMPLIANT_USERS_GROUP_NAME,  NonCompliantPasswordException, NonCompliantPasswordWarning,
-    _check_user_compliance, _get_compliance_deadline_for_user, enforce_compliance_on_login,
-    should_enforce_compliance_on_login
-)
-from student.tests.factories import (CourseAccessRoleFactory, GroupFactory, UserFactory)
+from openedx.core.djangoapps.password_policy.compliance import (NonCompliantPasswordException,
+                                                                NonCompliantPasswordWarning,
+                                                                _check_user_compliance,
+                                                                _get_compliance_deadline_for_user,
+                                                                enforce_compliance_on_login,
+                                                                should_enforce_compliance_on_login)
+from student.tests.factories import (CourseAccessRoleFactory,
+                                     UserFactory)
 from util.password_policy_validators import ValidationError
 
 
@@ -78,35 +80,23 @@ class Test(TestCase):
     def test_check_user_compliance(self):
         """
         Test that if the config is enabled:
-            * Returns True if user is already in the group, PASSWORD_POLICY_COMPLIANT_USERS_GROUP_NAME
-            * Returns True and user is added to the group if the user is not in the group but has a compliant password
-            * Returns False and user is not added to the group if the user does not have a compliant password
+            * Returns True if the user has a compliant password
+            * Returns False if the user does not have a compliant password
         """
-        # Test that a user already in the group is compliant
-        user = UserFactory()
-        group = GroupFactory.create(name=PASSWORD_POLICY_COMPLIANT_USERS_GROUP_NAME)
-        user.groups.add(group)
-        self.assertTrue(_check_user_compliance(user, None))  # Do not need a password here
 
-        # Test that a user not in the group that passes validate_password is True and they get added to the group
+        # Test that a user that passes validate_password returns True
         with patch('openedx.core.djangoapps.password_policy.compliance.validate_password') as mock_validate_password:
             user = UserFactory()
             # Mock validate_password to return True without checking the password
             mock_validate_password.return_value = True
-            self.assertFalse(user.groups.all())  # Make sure there are no groups to start with
             self.assertTrue(_check_user_compliance(user, None))  # Don't need a password here
-            # Make sure the user gets added to the group for having a compliant password
-            self.assertTrue(user.groups.filter(name=PASSWORD_POLICY_COMPLIANT_USERS_GROUP_NAME).exists())
 
-        # Test that a user not in the group that passes validate_password is False and they don't get added to the group
+        # Test that a user that does not pass validate_password returns False
         with patch('openedx.core.djangoapps.password_policy.compliance.validate_password') as mock_validate_password:
             user = UserFactory()
             # Mock validate_password to throw a ValidationError without checking the password
             mock_validate_password.side_effect = ValidationError('Some validation error')
-            self.assertFalse(user.groups.all())  # Make sure there are no groups to start with
             self.assertFalse(_check_user_compliance(user, None))  # Don't need a password here
-            # Make sure the user does not get added to the group when a ValidationError arises from validate_password
-            self.assertFalse(user.groups.all())  # Make sure there are no groups to start with
 
     @override_settings(PASSWORD_POLICY_COMPLIANCE_ROLLOUT_CONFIG={
         'STAFF_USER_COMPLIANCE_DEADLINE': '2018-01-01 00:00:00+00:00',
