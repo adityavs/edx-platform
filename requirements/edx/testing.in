@@ -20,7 +20,7 @@ before_after              # Syntactic sugar for mock, only used in one test case
 bok-choy                  # Framework for browser automation tests, based on selenium
 cssselect                 # Used to extract HTML fragments via CSS selectors in 2 test cases and pyquery
 ddt                       # Run a test case multiple times with different input; used in many, many of our tests
-edx-i18n-tools            # Commands for developers and translators to extract, compile and validate translations
+edx-i18n-tools>=0.4.5     # Commands for developers and translators to extract, compile and validate translations
 edx-lint                  # pylint extensions for Open edX repositories
 factory_boy==2.8.1        # Library for creating test fixtures, used in many tests
 freezegun                 # Allows tests to mock the output of assorted datetime module functions
@@ -49,4 +49,4 @@ tox-battery               # Makes tox aware of requirements file changes
 transifex-client          # Command-line interface for the Transifex localization service
 
 # Deprecated acceptance testing framework
--e git+https://github.com/edx/lettuce.git@31b0dfd865766243e9b563ec65fae9122edf7975#egg=lettuce==0.2.23+edx.1
+-e git+https://github.com/edx/lettuce.git@7a04591c78ac56dac3eb3e91ca94b15cce844133#egg=lettuce==0.2.23+edx.1

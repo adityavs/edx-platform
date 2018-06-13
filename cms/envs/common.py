@@ -46,8 +46,6 @@ import os
 import sys
 from datetime import timedelta
 
-import django
-
 import lms.envs.common
 # Although this module itself may not use these imported variables, other dependent modules may.
 from lms.envs.common import (
@@ -304,6 +302,15 @@ FEATURES = {
     # Whether archived courses (courses with end dates in the past) should be
     # shown in Studio in a separate list.
     'ENABLE_SEPARATE_ARCHIVED_COURSES': True,
+
+    # For acceptance and load testing
+    'AUTOMATIC_AUTH_FOR_TESTING': False,
+
+    # Prevent auto auth from creating superusers or modifying existing users
+    'RESTRICT_AUTOMATIC_AUTH': True,
+
+    # Set this to true to make API docs available at /api-docs/.
+    'ENABLE_API_DOCS': False,
 }
 
 ENABLE_JASMINE = False
@@ -452,13 +459,6 @@ XQUEUE_INTERFACE = {
 
 ################################# Middleware ###################################
 
-# TODO: Remove Django 1.11 upgrade shim
-# SHIM: Remove birdcage references post-1.11 upgrade as it is only in place to help during that deployment
-if django.VERSION < (1, 9):
-    _csrf_middleware = 'birdcage.v1_11.csrf.CsrfViewMiddleware'
-else:
-    _csrf_middleware = 'django.middleware.csrf.CsrfViewMiddleware'
-
 MIDDLEWARE_CLASSES = [
     'crum.CurrentRequestUserMiddleware',
     'openedx.core.djangoapps.request_cache.middleware.RequestCache',
@@ -468,7 +468,7 @@ MIDDLEWARE_CLASSES = [
     'openedx.core.djangoapps.header_control.middleware.HeaderControlMiddleware',
     'django.middleware.cache.UpdateCacheMiddleware',
     'django.middleware.common.CommonMiddleware',
-    _csrf_middleware,
+    'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.sites.middleware.CurrentSiteMiddleware',
 
     # Allows us to define redirects via Django admin
@@ -482,9 +482,6 @@ MIDDLEWARE_CLASSES = [
 
     # Instead of AuthenticationMiddleware, we use a cache-backed version
     'openedx.core.djangoapps.cache_toolbox.middleware.CacheBackedAuthenticationMiddleware',
-    # Enable SessionAuthenticationMiddleware in order to invalidate
-    # user sessions after a password change.
-    'django.contrib.auth.middleware.SessionAuthenticationMiddleware',
 
     'student.middleware.UserStandingMiddleware',
     'openedx.core.djangoapps.contentserver.middleware.StaticContentServer',
@@ -872,6 +869,9 @@ WEBPACK_CONFIG_PATH = 'webpack.prod.config.js'
 
 ################################# CELERY ######################################
 
+# Auto discover tasks fails to detect contentstore tasks
+CELERY_IMPORTS = ('cms.djangoapps.contentstore.tasks')
+
 # Message configuration
 
 CELERY_TASK_SERIALIZER = 'json'
@@ -957,6 +957,7 @@ INSTALLED_APPS = [
     # Standard apps
     'django.contrib.auth',
     'django.contrib.contenttypes',
+    'django.contrib.humanize',
     'django.contrib.redirects',
     'django.contrib.sessions',
     'django.contrib.sites',
@@ -970,6 +971,9 @@ INSTALLED_APPS = [
 
     # Common views
     'openedx.core.djangoapps.common_views',
+
+    # API access administration
+    'openedx.core.djangoapps.api_admin',
 
     # History tables
     'simple_history',
@@ -1036,7 +1040,13 @@ INSTALLED_APPS = [
     # Dark-launching languages
     'openedx.core.djangoapps.dark_lang',
 
+    #
     # User preferences
+    'wiki',
+    'django_notify',
+    'course_wiki',  # Our customizations
+    'mptt',
+    'sekizai',
     'openedx.core.djangoapps.user_api',
     'django_openid_auth',
 
@@ -1133,6 +1143,9 @@ INSTALLED_APPS = [
 
     # Asset management for mako templates
     'pipeline_mako',
+
+    # API Documentation
+    'rest_framework_swagger',
 ]
 
 
@@ -1245,6 +1258,9 @@ OPTIONAL_APPS = (
     # Enterprise App (http://github.com/edx/edx-enterprise)
     ('enterprise', None),
     ('consent', None),
+    ('integrated_channels.integrated_channel', None),
+    ('integrated_channels.degreed', None),
+    ('integrated_channels.sap_success_factors', None),
 )
 
 

@@ -39,7 +39,8 @@ for log_name, log_level in LOG_OVERRIDES:
 
 ################################ EMAIL ########################################
 
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+EMAIL_BACKEND = 'django.core.mail.backends.filebased.EmailBackend'
+EMAIL_FILE_PATH = '/edx/src/ace_messages/'
 
 ############################ PYFS XBLOCKS SERVICE #############################
 # Set configuration for Django pyfilesystem
@@ -86,6 +87,10 @@ def should_show_debug_toolbar(request):
     if request.get_host().startswith('edx.devstack.lms:'):
         return False
     return True
+
+########################### API DOCS #################################
+
+FEATURES['ENABLE_API_DOCS'] = True
 
 ########################### PIPELINE #################################
 

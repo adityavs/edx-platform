@@ -10,14 +10,15 @@ from uuid import uuid4
 import mock
 from bs4 import BeautifulSoup
 from django.conf import settings
-from django.core.urlresolvers import reverse, reverse_lazy
+from django.urls import reverse, reverse_lazy
 from django.test import override_settings
-from waffle.testutils import override_switch
 
 from lms.envs.test import CREDENTIALS_PUBLIC_SERVICE_URL
 from openedx.core.djangoapps.catalog.tests.factories import CourseFactory, CourseRunFactory, ProgramFactory
 from openedx.core.djangoapps.catalog.tests.mixins import CatalogIntegrationMixin
+from openedx.core.djangoapps.credentials import STUDENT_RECORDS_FLAG
 from openedx.core.djangoapps.programs.tests.mixins import ProgramsApiConfigMixin
+from openedx.core.djangoapps.waffle_utils.testutils import override_waffle_flag
 from openedx.core.djangolib.testing.utils import skip_unless_lms
 from student.tests.factories import CourseEnrollmentFactory, UserFactory
 from xmodule.modulestore.tests.django_utils import SharedModuleStoreTestCase
@@ -31,6 +32,7 @@ PROGRAMS_UTILS_MODULE = 'openedx.core.djangoapps.programs.utils'
 @mock.patch(PROGRAMS_UTILS_MODULE + '.get_programs')
 class TestProgramListing(ProgramsApiConfigMixin, SharedModuleStoreTestCase):
     """Unit tests for the program listing page."""
+    shard = 4
     maxDiff = None
     password = 'test'
     url = reverse_lazy('program_listing_view')
@@ -174,9 +176,10 @@ class TestProgramListing(ProgramsApiConfigMixin, SharedModuleStoreTestCase):
 
 @skip_unless_lms
 @mock.patch(PROGRAMS_UTILS_MODULE + '.get_programs')
-@override_switch('student_records', True)
+@override_waffle_flag(STUDENT_RECORDS_FLAG, active=True)
 class TestProgramDetails(ProgramsApiConfigMixin, CatalogIntegrationMixin, SharedModuleStoreTestCase):
     """Unit tests for the program details page."""
+    shard = 4
     program_uuid = str(uuid4())
     password = 'test'
     url = reverse_lazy('program_details_view', kwargs={'program_uuid': program_uuid})

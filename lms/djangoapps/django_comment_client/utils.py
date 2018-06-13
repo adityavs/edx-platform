@@ -5,7 +5,7 @@ from datetime import datetime
 
 from django.conf import settings
 from django.contrib.auth.models import User
-from django.core.urlresolvers import reverse
+from django.urls import reverse
 from django.db import connection
 from django.http import HttpResponse
 from pytz import UTC
@@ -125,10 +125,10 @@ def get_accessible_discussion_xblocks(course, user, include_all=False):  # pylin
 
 
 @request_cached
-def get_accessible_discussion_xblocks_by_course_id(course_id, user, include_all=False):  # pylint: disable=invalid-name
+def get_accessible_discussion_xblocks_by_course_id(course_id, user=None, include_all=False):  # pylint: disable=invalid-name
     """
-    Return a list of all valid discussion xblocks in this course that
-    are accessible to the given user.
+    Return a list of all valid discussion xblocks in this course.
+    Checks for the given user's access if include_all is False.
     """
     all_xblocks = modulestore().get_items(course_id, qualifiers={'category': 'discussion'}, include_orphans=False)
 

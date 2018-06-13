@@ -312,7 +312,6 @@
     .program-heading-message {
       font-weight: 300;
     }
-
   }
 
   .course-enroll-view {
@@ -632,6 +631,7 @@
 
   .program-record {
     text-align: center;
+    padding-bottom: 2em;
   }
 
   @media (min-width: $bp-screen-md) {

@@ -164,8 +164,8 @@ class SurveyAnswer(TimeStampedModel):
     """
     Model for the answers that a user gives for a particular form in a course
     """
-    user = models.ForeignKey(User, db_index=True)
-    form = models.ForeignKey(SurveyForm, db_index=True)
+    user = models.ForeignKey(User, db_index=True, on_delete=models.CASCADE)
+    form = models.ForeignKey(SurveyForm, db_index=True, on_delete=models.CASCADE)
     field_name = models.CharField(max_length=255, db_index=True)
     field_value = models.CharField(max_length=1024)
 
@@ -182,7 +182,7 @@ class SurveyAnswer(TimeStampedModel):
         Returns whether a user has any answers for a given SurveyForm for a course
         This can be used to determine if a user has taken a CourseSurvey.
         """
-        if user.is_anonymous():
+        if user.is_anonymous:
             return False
         return SurveyAnswer.objects.filter(form=form, user=user).exists()
 
